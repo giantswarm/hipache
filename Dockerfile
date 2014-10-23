@@ -12,26 +12,24 @@ FROM    ubuntu:14.04
 # Update
 RUN apt-get -y update
 
-# Install supervisor, node, npm and redis
-RUN apt-get -y install supervisor nodejs npm redis-server python-pip
-RUN pip install supervisor-stdout
+# Install node, npm
+RUN apt-get -y install nodejs npm
 
 # Manually add hipache folder
 RUN mkdir ./hipache
-ADD . ./hipache
+ADD . ./app
 
 # Install npm modules
-WORKDIR /hipache
+WORKDIR /app
 RUN npm install --production
 
 # This is provisional, as we don't honor it yet in hipache
 ENV NODE_ENV production
 
-# Add supervisor conf
-ADD ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Expose hipache and redis
+# Expose hipache
 EXPOSE  80
 
+ENTRYPOINT ["/app/bin/hipache"]
+
 # Start supervisor
-CMD ["supervisord", "-n"]
+CMD ["-c", "/app/config/config_dev.json"]
