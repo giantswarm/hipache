@@ -26,8 +26,10 @@ RUN npm install --production
 # This is provisional, as we don't honor it yet in hipache
 ENV NODE_ENV production
 
-# Expose hipache and redis
+# Expose hipache
 EXPOSE  80
 
+ENTRYPOINT ["/app/bin/hipache"]
+
 # Start supervisor
-CMD ["/app/bin/hipache", "-c", "/app/config/config_dev.json"]
+CMD ["-c", "/app/config/config_dev.json"]
