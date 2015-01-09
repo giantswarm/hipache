@@ -17,7 +17,8 @@ RUN apt-get -y install nodejs npm
 
 # Manually add hipache folder
 RUN mkdir ./hipache
-ADD . ./app
+ADD package.json ./app/package.json
+ADD node_modules/ ./app/node_modules/
 
 # Install npm modules
 WORKDIR /app
@@ -33,3 +34,5 @@ ENTRYPOINT ["/app/bin/hipache"]
 
 # Start supervisor
 CMD ["-c", "/app/config/config_dev.json"]
+
+ADD . ./app
