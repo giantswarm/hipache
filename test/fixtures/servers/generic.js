@@ -16,19 +16,38 @@
         }
 
         var child;
+        var started = false;
+
+        this.setCommand = function (c) {
+            command = c;
+        };
+
+        this.mute = false;
 
         this.start = function (moreArgs, stdin) {
             if (!((moreArgs = moreArgs || []) instanceof Array)) {
                 moreArgs = [moreArgs];
             }
-            child = spawn(command, args.concat(moreArgs), {cwd: process.cwd()});
+            child = spawn(command, args.concat(moreArgs));
             var stdout = '',
                 stderr = '';
 
             child.stdout.setEncoding('utf8');
 
             child.stdout.once('data', function () {
-                this.emit('started');
+                if (!started) {
+                    started = true;
+                    this.emit('started');
+                    npmlog.silly('Server#' + command, 'started with', args, 'and', moreArgs);
+                }
+            }.bind(this));
+
+            child.stderr.once('data', function () {
+                if (!started) {
+                    started = true;
+                    this.emit('started');
+                    npmlog.silly('Server#' + command, 'started with', args, 'and', moreArgs);
+                }
             }.bind(this));
 
             child.stdout.on('data', function (data) {
@@ -40,10 +59,23 @@
 
             child.stderr.on('data', function (data) {
                 stderr += data;
-                npmlog.error('Server#' + command, '', data);
-            });
+                if (this.mute) {
+                    npmlog.silly('Server#' + command, '', data);
+                } else {
+                    npmlog.error('Server#' + command, '', data);
+                }
+            }.bind(this));
+
+            child.on('error', function(err) {
+              var msg = 'Failed to spawn ' +
+                        '"' + command + ' ' + args.concat(moreArgs) + '" ' +
+                        '(' + err + ')';
+              npmlog.error(msg);
+              this.emit('error', new Error(msg));
+            }.bind(this));
 
             child.on('close', function (code) {
+                child = null;
                 npmlog.silly('Server#' + command, '', 'Done with exit code ' + code);
                 this.emit('stopped');
             }.bind(this));
@@ -59,9 +91,10 @@
         };
 
         this.stop = function () {
-            if (child) {
+            if (started) {
+                npmlog.silly('Server#' + command, '', 'Will close');
+                started = false;
                 child.kill();
-                child = null;
             }
             return this;
         };

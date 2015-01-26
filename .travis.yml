@@ -4,28 +4,47 @@ node_js:
     # - "0.11"
     - "0.10"
 
+services:
+    - redis-server
+
 env:
-    # Don't know yet how to install etcd on travis ubuntu, so disable the tests
-    - NO_ETCD=true
+    - NO_MEMCACHED=true
 
 before_install:
     - sudo apt-get update
-    - sudo apt-get install redis-server memcached
-    - npm install -g gulp
 
-after_install:
+install:
+    - npm install -g gulp
+    - npm install
     # Pythonic tests require
     - sudo apt-get install python-pip
-    - redis-server &
-    - ./bin/hipache -c config/config_test.json &
+    - (cd test/functional && sudo pip install -r requirements.txt)
+    # Zookeeper install
+    - pushd $HOME
+    - curl -C - http://apache.websitebeheerjd.nl/zookeeper/stable/zookeeper-3.4.6.tar.gz | tar -zx
+    - mv $HOME/zookeeper-3.4.6 $HOME/zookeeper
+    - chmod a+x $HOME/zookeeper/bin/zkServer.sh
+    # etcd install
+    - curl -L -C - https://github.com/coreos/etcd/releases/download/v0.4.6/etcd-v0.4.6-linux-amd64.tar.gz | tar -zx
+    - mv $HOME/etcd-v0.4.6-linux-amd64 $HOME/etcd
+    - chmod a+x $HOME/etcd/{etcd,etcdctl}
+    - popd
 
 before_script:
+    - export PATH="$HOME/zookeeper/bin:$HOME/etcd:$PATH"
     # Hinting - XXX should fail!
     - npm run-script hint
 
-after_script:
+script:
+    - npm test
     # Running pythonic functional tests
-    - (cd test/functional && sudo pip install -r requirements.txt)
+    - ./bin/hipache -c config/config_test.json &
+    # Wait for Hipache...
+    - sleep 5
     - (cd test/functional && python -m unittest discover)
+    # A bit "brutal" but still, useful...
+    - killall node
+
+after_script:
     # Coveralls report
     - npm run coveralls
