@@ -6,10 +6,10 @@
     "server": {
         "debug": true,
         "accessLog": "/tmp/proxy2_access.log",
-        "workers": 2,
+        "workers": 10,
         "maxSockets": 100,
         "deadBackendTTL": 10,
-        "tcpTimeout": 3600,
+        "tcpTimeout": 60,
         "retryOnError": 3,
         "deadBackendOn500": true,
         "httpKeepAlive": false,
